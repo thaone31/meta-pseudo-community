@@ -47,18 +47,27 @@ echo "Installing dependencies..."
 pip install --upgrade pip
 
 if [ -f "requirements.txt" ]; then
-    echo "Installing basic dependencies..."
+    echo "Installing main dependencies..."
     pip install -r requirements.txt
     
-    echo "Installing PyTorch Geometric and related packages..."
-    # Install PyTorch Geometric packages with proper dependency handling
-    pip install torch-geometric
-    pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.7.0+cpu.html
+    echo "Installing PyTorch Geometric..."
+    # Install PyTorch Geometric with proper handling
+    pip install torch-geometric || echo "Warning: torch-geometric installation failed"
     
-    echo "✓ All dependencies installed"
+    # Try to install PyG extensions (may fail on some systems)
+    echo "Attempting to install PyTorch Geometric extensions..."
+    pip install pyg_lib torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl/torch-2.7.0+cpu.html || echo "Warning: Some PyG extensions failed to install"
+    
+    # Install optional dependencies
+    echo "Installing optional dependencies..."
+    if [ -f "requirements-optional.txt" ]; then
+        pip install -r requirements-optional.txt || echo "Warning: Some optional dependencies failed to install"
+    fi
+    
+    echo "✓ Dependencies installation completed (some warnings may be normal)"
 else
-    echo "Warning: requirements.txt not found. Installing basic dependencies..."
-    pip install torch torch-geometric scikit-learn matplotlib pandas numpy networkx
+    echo "Warning: requirements.txt not found. Installing minimal dependencies..."
+    pip install torch numpy scikit-learn matplotlib pandas networkx python-louvain
 fi
 
 # Create necessary directories
