@@ -60,17 +60,22 @@ class MAML(nn.Module):
             # Compute loss với pseudo-labels
             loss = F.cross_entropy(logits, pseudo_labels)
             
-            # Compute gradients
+            # Compute gradients with allow_unused=True
             grads = torch.autograd.grad(
                 loss, params.values(), 
                 create_graph=not self.first_order,
-                retain_graph=True
+                retain_graph=True,
+                allow_unused=True
             )
             
-            # Update parameters
+            # Update parameters (skip None gradients)
             updated_params = OrderedDict()
             for (name, param), grad in zip(params.items(), grads):
-                updated_params[name] = param - self.lr_inner * grad
+                if grad is not None:
+                    updated_params[name] = param - self.lr_inner * grad
+                else:
+                    # Keep parameter unchanged if no gradient
+                    updated_params[name] = param
             
             params = updated_params
         
