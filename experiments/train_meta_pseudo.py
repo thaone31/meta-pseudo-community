@@ -99,12 +99,20 @@ class MetaTrainer:
         """Create base model"""
         model_config = self.config['model']['base_model']
         
-        # Estimate input dimension từ data
+        # Estimate input dimension từ data - sử dụng dimension phổ biến nhất
         available_datasets = self.data_loader.get_available_datasets()
+        input_dims = []
+        
         if available_datasets:
-            sample_episodes = self.data_loader.get_dataset_episodes(available_datasets[0])
-            if sample_episodes and sample_episodes[0].x is not None:
-                input_dim = sample_episodes[0].x.size(1)
+            for dataset_name in available_datasets[:3]:  # Check first 3 datasets
+                episodes = self.data_loader.get_dataset_episodes(dataset_name)
+                if episodes and episodes[0].x is not None:
+                    input_dims.append(episodes[0].x.size(1))
+            
+            if input_dims:
+                # Use the most common dimension, or the minimum (safer choice)
+                input_dim = min(input_dims)
+                print(f"Found input dimensions: {input_dims}, using: {input_dim}")
             else:
                 input_dim = 64  # Default
         else:
@@ -116,6 +124,7 @@ class MetaTrainer:
             hidden_dim=model_config['hidden_dim'],
             embedding_dim=model_config['embedding_dim'],
             num_classes=model_config.get('num_classes', 10),  # Will be adjusted dynamically
+            adaptive_input=True,  # Enable adaptive input handling
             num_layers=model_config.get('num_layers', 2),
             dropout=model_config.get('dropout', 0.1),
             heads=model_config.get('heads', 8)  # For GAT
