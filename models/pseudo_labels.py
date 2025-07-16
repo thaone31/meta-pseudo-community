@@ -475,31 +475,80 @@ class AdaptivePseudoLabelGenerator:
                         weights: List[float]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Ensemble multiple label predictions"""
         
+        # Handle empty input
+        if not all_labels or len(all_labels) == 0:
+            # Return fallback labels
+            num_nodes = 2  # Minimum 
+            labels = torch.zeros(num_nodes, dtype=torch.long)
+            confidences = torch.ones(num_nodes, dtype=torch.float) * 0.1
+            return labels, confidences
+        
+        # Check if all tensors are valid
+        valid_indices = []
+        for i, (labels, confidences) in enumerate(zip(all_labels, all_confidences)):
+            if labels.numel() > 0 and confidences.numel() > 0:
+                valid_indices.append(i)
+        
+        if not valid_indices:
+            # No valid predictions, use fallback
+            num_nodes = 2
+            labels = torch.zeros(num_nodes, dtype=torch.long)
+            confidences = torch.ones(num_nodes, dtype=torch.float) * 0.1
+            return labels, confidences
+        
+        # Filter to only valid predictions
+        all_labels = [all_labels[i] for i in valid_indices]
+        all_confidences = [all_confidences[i] for i in valid_indices]
+        weights = [weights[i] for i in valid_indices]
+        
         # Normalize weights
         weights = np.array(weights)
         weights = weights / weights.sum()
         
         # Weighted voting
         num_nodes = all_labels[0].size(0)
-        num_methods = len(all_labels)
+        
+        # Handle empty nodes case
+        if num_nodes == 0:
+            return torch.tensor([], dtype=torch.long), torch.tensor([], dtype=torch.float)
         
         # Collect all unique labels
         all_unique_labels = set()
         for labels in all_labels:
-            all_unique_labels.update(labels.tolist())
+            if labels.numel() > 0:
+                all_unique_labels.update(labels.tolist())
+        
+        # Handle case with no valid labels
+        if not all_unique_labels:
+            labels = torch.zeros(num_nodes, dtype=torch.long)
+            confidences = torch.ones(num_nodes, dtype=torch.float) * 0.1
+            return labels, confidences
         
         label_to_idx = {label: idx for idx, label in enumerate(sorted(all_unique_labels))}
         num_classes = len(label_to_idx)
+        
+        # Ensure we have valid classes
+        if num_classes == 0:
+            labels = torch.zeros(num_nodes, dtype=torch.long)
+            confidences = torch.ones(num_nodes, dtype=torch.float) * 0.1
+            return labels, confidences
         
         # Vote matrix
         votes = torch.zeros(num_nodes, num_classes)
         
         for i, (labels, confidences, weight) in enumerate(zip(all_labels, all_confidences, weights)):
-            for node_idx in range(num_nodes):
+            for node_idx in range(min(num_nodes, labels.size(0))):
                 label = labels[node_idx].item()
                 conf = confidences[node_idx].item()
-                class_idx = label_to_idx[label]
-                votes[node_idx, class_idx] += weight * conf
+                if label in label_to_idx:
+                    class_idx = label_to_idx[label]
+                    votes[node_idx, class_idx] += weight * conf
+        
+        # Check votes validity before max operation
+        if votes.size(1) == 0:
+            labels = torch.zeros(num_nodes, dtype=torch.long)
+            confidences = torch.ones(num_nodes, dtype=torch.float) * 0.1
+            return labels, confidences
         
         # Final labels and confidence
         ensemble_confidence, ensemble_label_indices = torch.max(votes, dim=1)
@@ -512,6 +561,8 @@ class AdaptivePseudoLabelGenerator:
         max_conf = ensemble_confidence.max()
         if max_conf > 0:
             ensemble_confidence = ensemble_confidence / max_conf
+        else:
+            ensemble_confidence = torch.ones_like(ensemble_confidence) * 0.1
         
         return ensemble_labels, ensemble_confidence
     
