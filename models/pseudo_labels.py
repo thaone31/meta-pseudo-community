@@ -1,5 +1,13 @@
 """
-Pseudo-label generation và refinement module
+Pseudo-label generat        self.methods = {
+            'spectral': self._spectral_clustering,
+            'kmeans': self._kmeans_clustering, 
+            'dbscan': self._dbscan_clustering,
+            'louvain': self._louvain_clustering,
+            'leiden': self._leiden_clustering,
+            'modularity': self._modularity_clustering,
+            'fallback': self._simple_fallback_clustering
+        }efinement module
 """
 
 import torch
@@ -99,6 +107,18 @@ class PseudoLabelGenerator:
                            num_clusters: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Spectral clustering trên adjacency matrix"""
         
+        # Handle edge case: if we have fewer nodes than clusters
+        if data.num_nodes < num_clusters:
+            labels = torch.arange(data.num_nodes, dtype=torch.long)
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float)
+            return labels, confidence_scores
+        
+        # Handle case with no edges
+        if data.edge_index.size(1) == 0:
+            labels = torch.arange(data.num_nodes, dtype=torch.long) % num_clusters
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float) * 0.5
+            return labels, confidence_scores
+        
         edge_index = data.edge_index
         
         # Build adjacency matrix
@@ -108,16 +128,28 @@ class PseudoLabelGenerator:
             (data.num_nodes, data.num_nodes)
         ).to_dense().numpy()
         
-        # Spectral clustering
-        clustering = SpectralClustering(
-            n_clusters=num_clusters,
-            affinity='precomputed',
-            assign_labels='kmeans',
-            random_state=42
-        )
-        
         try:
+            # Spectral clustering
+            clustering = SpectralClustering(
+                n_clusters=num_clusters,
+                affinity='precomputed',
+                assign_labels='kmeans',
+                random_state=42
+            )
+            
             labels = clustering.fit_predict(adj_matrix)
+            
+            # Confidence scores (simplified as spectral clustering doesn't provide them directly)
+            confidence_scores = np.ones(len(labels)) * 0.8
+            
+            return torch.LongTensor(labels), torch.FloatTensor(confidence_scores)
+            
+        except Exception as e:
+            print(f"Warning: Spectral clustering failed ({e}), using fallback clustering")
+            # Fallback: assign sequential labels
+            labels = torch.arange(data.num_nodes, dtype=torch.long) % num_clusters
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float) * 0.5
+            return labels, confidence_scores
             
             # Compute confidence scores based on eigenvalues
             eigenvals = clustering.eigenvalues_
@@ -138,6 +170,13 @@ class PseudoLabelGenerator:
                          num_clusters: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """K-means clustering"""
         
+        # Handle edge case: if we have fewer nodes than clusters
+        if data.num_nodes < num_clusters:
+            # Each node is its own cluster
+            labels = torch.arange(data.num_nodes, dtype=torch.long)
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float)
+            return labels, confidence_scores
+        
         if embeddings is not None:
             X = embeddings.detach().cpu().numpy()
         else:
@@ -153,21 +192,41 @@ class PseudoLabelGenerator:
                 ).to_dense().numpy()
                 X = adj_matrix
         
-        # K-means
-        kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
-        labels = kmeans.fit_predict(X)
+        # Additional check for X shape
+        if X.shape[0] < num_clusters:
+            labels = torch.arange(X.shape[0], dtype=torch.long)
+            confidence_scores = torch.ones(X.shape[0], dtype=torch.float)
+            return labels, confidence_scores
         
-        # Confidence scores based on distance to cluster centers
-        distances = kmeans.transform(X)
-        min_distances = np.min(distances, axis=1)
-        max_distance = np.max(min_distances)
-        confidence_scores = 1.0 - (min_distances / (max_distance + 1e-8))
-        
-        return torch.LongTensor(labels), torch.FloatTensor(confidence_scores)
+        try:
+            # K-means
+            kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(X)
+            
+            # Confidence scores based on distance to cluster centers
+            distances = kmeans.transform(X)
+            min_distances = np.min(distances, axis=1)
+            max_distance = np.max(min_distances)
+            confidence_scores = 1.0 - (min_distances / (max_distance + 1e-8))
+            
+            return torch.LongTensor(labels), torch.FloatTensor(confidence_scores)
+            
+        except Exception as e:
+            print(f"Warning: K-means failed ({e}), using fallback clustering")
+            # Fallback: assign sequential labels
+            labels = torch.arange(data.num_nodes, dtype=torch.long) % num_clusters
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float) * 0.5
+            return labels, confidence_scores
     
     def _dbscan_clustering(self, data: Data, embeddings: Optional[torch.Tensor],
                          num_clusters: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """DBSCAN clustering"""
+        
+        # Handle edge case: if we have very few nodes
+        if data.num_nodes < 2:
+            labels = torch.zeros(data.num_nodes, dtype=torch.long)
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float)
+            return labels, confidence_scores
         
         if embeddings is not None:
             X = embeddings.detach().cpu().numpy()
@@ -177,6 +236,44 @@ class PseudoLabelGenerator:
             else:
                 # Use adjacency representation
                 edge_index = data.edge_index
+                adj_matrix = torch.sparse_coo_tensor(
+                    edge_index,
+                    torch.ones(edge_index.size(1)),
+                    (data.num_nodes, data.num_nodes)
+                ).to_dense().numpy()
+                X = adj_matrix
+        
+        try:
+            # DBSCAN
+            from sklearn.cluster import DBSCAN
+            dbscan = DBSCAN(eps=0.5, min_samples=2)
+            labels = dbscan.fit_predict(X)
+            
+            # Handle noise points (label -1)
+            unique_labels = np.unique(labels)
+            if -1 in unique_labels:
+                # Reassign noise points to nearest cluster
+                noise_mask = labels == -1
+                if np.any(~noise_mask):  # If there are non-noise points
+                    # Simple reassignment based on majority cluster
+                    valid_labels = labels[~noise_mask]
+                    most_common = np.bincount(valid_labels).argmax()
+                    labels[noise_mask] = most_common
+                else:
+                    # All points are noise, assign to single cluster
+                    labels = np.zeros_like(labels)
+            
+            # Confidence scores (simplified)
+            confidence_scores = np.ones(len(labels)) * 0.7  # DBSCAN doesn't provide natural confidence
+            
+            return torch.LongTensor(labels), torch.FloatTensor(confidence_scores)
+            
+        except Exception as e:
+            print(f"Warning: DBSCAN failed ({e}), using fallback clustering")
+            # Fallback: assign sequential labels
+            labels = torch.arange(data.num_nodes, dtype=torch.long) % max(1, num_clusters)
+            confidence_scores = torch.ones(data.num_nodes, dtype=torch.float) * 0.5
+            return labels, confidence_scores
                 adj_matrix = torch.sparse_coo_tensor(
                     edge_index,
                     torch.ones(edge_index.size(1)),
@@ -297,6 +394,23 @@ class PseudoLabelGenerator:
             return self._spectral_clustering(data, embeddings, num_clusters)
         
         return torch.LongTensor(labels), confidence_scores
+    
+    def _simple_fallback_clustering(self, data: Data, embeddings: Optional[torch.Tensor],
+                                   num_clusters: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Simple fallback clustering for edge cases"""
+        
+        # Very simple clustering: just assign labels in round-robin fashion
+        if data.num_nodes <= num_clusters:
+            # Each node gets its own cluster (or sequential assignment)
+            labels = torch.arange(data.num_nodes, dtype=torch.long)
+        else:
+            # Round-robin assignment
+            labels = torch.arange(data.num_nodes, dtype=torch.long) % num_clusters
+        
+        # Low confidence for fallback method
+        confidence_scores = torch.ones(data.num_nodes, dtype=torch.float) * 0.3
+        
+        return labels, confidence_scores
 
 
 class PseudoLabelRefiner(nn.Module):
@@ -347,23 +461,41 @@ class AdaptivePseudoLabelGenerator:
         all_results = {}
         all_labels = []
         all_confidences = []
+        successful_methods = []
         
         for method, generator in self.generators.items():
-            result = generator.generate(data, embeddings, num_clusters)
-            all_results[method] = result
-            all_labels.append(result['labels'])
-            all_confidences.append(result['confidence_scores'])
+            try:
+                result = generator.generate(data, embeddings, num_clusters)
+                all_results[method] = result
+                all_labels.append(result['labels'])
+                all_confidences.append(result['confidence_scores'])
+                successful_methods.append(method)
+            except Exception as e:
+                print(f"Warning: Method {method} failed ({e}), skipping...")
+                continue
         
-        # Weighted ensemble
+        # If no methods succeeded, use fallback
+        if not successful_methods:
+            print("Warning: All methods failed, using fallback clustering")
+            fallback_generator = PseudoLabelGenerator('fallback')
+            result = fallback_generator.generate(data, embeddings, num_clusters)
+            all_results['fallback'] = result
+            all_labels = [result['labels']]
+            all_confidences = [result['confidence_scores']]
+            successful_methods = ['fallback']
+        
+        # Weighted ensemble (only use successful methods)
+        active_weights = [self.method_weights.get(method, 1.0) for method in successful_methods]
         ensemble_labels, ensemble_confidence = self._ensemble_labels(
-            all_labels, all_confidences, list(self.method_weights.values())
+            all_labels, all_confidences, active_weights
         )
         
         ensemble_result = {
             'labels': ensemble_labels,
             'confidence_scores': ensemble_confidence,
             'individual_results': all_results,
-            'num_clusters': num_clusters or all_results[list(self.generators.keys())[0]]['num_clusters']
+            'successful_methods': successful_methods,
+            'num_clusters': num_clusters or all_results[successful_methods[0]]['num_clusters']
         }
         
         return ensemble_result
