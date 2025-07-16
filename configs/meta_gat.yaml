@@ -1,0 +1,60 @@
+# Meta-Learning GAT Configuration
+model:
+  type: "meta_pseudo_gat"
+  base_model:
+    encoder_type: "gat"
+    hidden_dim: 128
+    embedding_dim: 64
+    num_layers: 3
+    heads: 8
+    dropout: 0.1
+  
+  meta_learner:
+    algorithm: "maml"
+    lr_inner: 0.005
+    lr_outer: 0.0005
+    num_inner_steps: 8
+    first_order: false
+  
+  pseudo_label:
+    methods: ["spectral", "leiden", "modularity"]
+    confidence_threshold: 0.75
+    adaptive_weights: true
+
+data:
+  datasets: ["cora", "citeseer", "pubmed", "reddit"]
+  episode_batch_size: 6
+  subgraph_size_range: [150, 600]
+  num_episodes_per_dataset: 40
+  train_val_split: 0.8
+
+training:
+  num_epochs: 800
+  meta_batch_size: 3
+  evaluation_interval: 40
+  early_stopping_patience: 80
+  
+  optimizer:
+    type: "adam"
+    lr: 0.0005
+    weight_decay: 1e-4
+  
+  scheduler:
+    type: "step"
+    step_size: 200
+    gamma: 0.5
+
+evaluation:
+  metrics: ["modularity", "nmi", "ari", "silhouette", "conductance"]
+  num_runs: 5
+  save_predictions: true
+  save_embeddings: true
+
+logging:
+  log_level: "INFO"
+  save_dir: "./results/meta_gat"
+  tensorboard: true
+  save_model_every: 100
+
+device: "auto"
+seed: 42

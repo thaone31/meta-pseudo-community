@@ -1,0 +1,88 @@
+# Baseline Methods Comparison Configuration
+baselines:
+  traditional:
+    - name: "louvain"
+      params:
+        resolution: 1.0
+        random_state: 42
+    
+    - name: "leiden"
+      params:
+        resolution: 1.0
+        random_state: 42
+    
+    - name: "infomap"
+      params:
+        num_trials: 10
+        random_state: 42
+    
+    - name: "spectral"
+      params:
+        n_clusters: null  # auto-estimate
+        random_state: 42
+    
+    - name: "modularity"
+      params:
+        resolution: 1.0
+        cutoff: 1
+    
+    - name: "label_propagation"
+      params:
+        max_iter: 100
+        random_state: 42
+
+  deep_learning:
+    - name: "deepwalk"
+      params:
+        embedding_dim: 128
+        walk_length: 80
+        num_walks: 10
+        window_size: 5
+    
+    - name: "node2vec"
+      params:
+        embedding_dim: 128
+        walk_length: 80
+        num_walks: 10
+        p: 1.0
+        q: 1.0
+        window_size: 5
+    
+    - name: "dgi"
+      params:
+        hidden_dim: 512
+        epochs: 200
+        lr: 0.001
+    
+    - name: "vgae"
+      params:
+        hidden_dim: 32
+        latent_dim: 16
+        epochs: 200
+        lr: 0.01
+    
+    - name: "dmon"
+      params:
+        hidden_dim: 64
+        n_clusters: null  # auto-estimate
+        epochs: 500
+        lr: 0.001
+
+data:
+  datasets: ["cora", "citeseer", "pubmed", "amazon", "dblp", "lfr_1", "lfr_2"]
+  test_mode: true  # Use full graphs, not episodes
+
+evaluation:
+  metrics: ["modularity", "nmi", "ari", "silhouette", "conductance", "runtime"]
+  num_runs: 10  # For stability analysis
+  save_all_results: true
+  create_comparison_plots: true
+
+output:
+  save_dir: "./results/baselines_comparison"
+  create_dashboard: true
+  save_csv: true
+  save_plots: true
+
+device: "auto"
+seed: 42

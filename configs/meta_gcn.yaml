@@ -1,0 +1,59 @@
+# Meta-Learning GCN Configuration
+model:
+  type: "meta_pseudo_gcn"
+  base_model:
+    encoder_type: "gcn"
+    hidden_dim: 128
+    embedding_dim: 64
+    num_layers: 3
+    dropout: 0.1
+  
+  meta_learner:
+    algorithm: "maml"  # maml or reptile
+    lr_inner: 0.01
+    lr_outer: 0.001
+    num_inner_steps: 5
+    first_order: false
+  
+  pseudo_label:
+    methods: ["spectral", "louvain", "kmeans"]
+    confidence_threshold: 0.8
+    adaptive_weights: true
+
+data:
+  datasets: ["cora", "citeseer", "pubmed", "amazon"]
+  episode_batch_size: 8
+  subgraph_size_range: [100, 500]
+  num_episodes_per_dataset: 50
+  train_val_split: 0.8
+
+training:
+  num_epochs: 1000
+  meta_batch_size: 4
+  evaluation_interval: 50
+  early_stopping_patience: 100
+  
+  optimizer:
+    type: "adam"
+    lr: 0.001
+    weight_decay: 1e-5
+  
+  scheduler:
+    type: "cosine"
+    T_max: 1000
+    eta_min: 1e-6
+
+evaluation:
+  metrics: ["modularity", "nmi", "ari", "silhouette", "conductance"]
+  num_runs: 5
+  save_predictions: true
+  save_embeddings: true
+
+logging:
+  log_level: "INFO"
+  save_dir: "./results/meta_gcn"
+  tensorboard: true
+  save_model_every: 100
+
+device: "auto"  # auto, cpu, cuda
+seed: 42
