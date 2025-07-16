@@ -83,28 +83,35 @@ class DatasetDownloader:
             
             # Các tham số khác nhau cho LFR networks
             lfr_params = [
-                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'seed': 42},
-                {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'seed': 42},
-                {'n': 2000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.2, 'seed': 42},
-                {'n': 5000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'seed': 42},
+                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 20, 'seed': 42},
+                {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'average_degree': 15, 'seed': 42},
+                {'n': 2000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.2, 'average_degree': 25, 'seed': 42},
+                {'n': 5000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 30, 'seed': 42},
             ]
             
             for i, params in enumerate(lfr_params):
-                print(f"Generating LFR network {i+1}/4...")
-                G = LFR_benchmark_graph(**params)
-                
-                # Lưu network và ground truth communities
-                output_dir = f"{self.data_dir}/lfr/lfr_{i+1}"
-                os.makedirs(output_dir, exist_ok=True)
-                
-                # Lưu graph
-                nx.write_edgelist(G, f"{output_dir}/edges.txt", data=False)
-                
-                # Lưu ground truth communities
-                communities = {frozenset(G.nodes[v]['community']) for v in G}
-                with open(f"{output_dir}/communities.txt", 'w') as f:
-                    for comm in communities:
-                        f.write(' '.join(map(str, comm)) + '\n')
+                try:
+                    print(f"Generating LFR network {i+1}/4...")
+                    G = LFR_benchmark_graph(**params)
+                    
+                    # Lưu network và ground truth communities
+                    output_dir = f"{self.data_dir}/lfr/lfr_{i+1}"
+                    os.makedirs(output_dir, exist_ok=True)
+                    
+                    # Lưu graph
+                    nx.write_edgelist(G, f"{output_dir}/edges.txt", data=False)
+                    
+                    # Lưu ground truth communities
+                    communities = {frozenset(G.nodes[v]['community']) for v in G}
+                    with open(f"{output_dir}/communities.txt", 'w') as f:
+                        for comm in communities:
+                            f.write(' '.join(map(str, comm)) + '\n')
+                    
+                    print(f"✓ LFR network {i+1} generated successfully")
+                    
+                except Exception as e:
+                    print(f"Warning: Failed to generate LFR network {i+1}: {e}")
+                    continue
                         
         except ImportError:
             print("Warning: Cannot generate LFR networks. Install networkx[extra] for LFR support.")
