@@ -156,13 +156,17 @@ class CommunityDetectionModel(nn.Module):
         self.embedding_dim = embedding_dim
         self.num_classes = num_classes
         
-        # Choose encoder
+        # Choose encoder with appropriate parameters
         if encoder_type.lower() == 'gcn':
-            self.encoder = GCNEncoder(input_dim, hidden_dim, embedding_dim, **kwargs)
+            # Filter out GAT-specific parameters
+            gcn_kwargs = {k: v for k, v in kwargs.items() if k not in ['heads']}
+            self.encoder = GCNEncoder(input_dim, hidden_dim, embedding_dim, **gcn_kwargs)
         elif encoder_type.lower() == 'gat':
             self.encoder = GATEncoder(input_dim, hidden_dim, embedding_dim, **kwargs)
         elif encoder_type.lower() == 'gin':
-            self.encoder = GINEncoder(input_dim, hidden_dim, embedding_dim, **kwargs)
+            # Filter out GAT-specific parameters  
+            gin_kwargs = {k: v for k, v in kwargs.items() if k not in ['heads']}
+            self.encoder = GINEncoder(input_dim, hidden_dim, embedding_dim, **gin_kwargs)
         else:
             raise ValueError(f"Unknown encoder type: {encoder_type}")
         
