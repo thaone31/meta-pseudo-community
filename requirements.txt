@@ -1,8 +1,11 @@
+# Core PyTorch (install first)
 torch>=2.0.0
-torch-geometric>=2.4.0
-torch-scatter>=2.1.0
-torch-sparse>=0.6.0
-torch-cluster>=1.6.0
+
+# PyTorch Geometric and related packages (install after torch)
+# torch-geometric>=2.4.0
+# torch-scatter>=2.1.0
+# torch-sparse>=0.6.0
+# torch-cluster>=1.6.0
 dgl>=1.0.0
 networkx>=3.0
 numpy>=1.21.0

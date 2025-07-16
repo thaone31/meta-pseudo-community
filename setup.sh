@@ -45,9 +45,17 @@ echo "✓ Virtual environment activated"
 # Install dependencies
 echo "Installing dependencies..."
 pip install --upgrade pip
+
 if [ -f "requirements.txt" ]; then
+    echo "Installing basic dependencies..."
     pip install -r requirements.txt
-    echo "✓ Dependencies installed"
+    
+    echo "Installing PyTorch Geometric and related packages..."
+    # Install PyTorch Geometric packages with proper dependency handling
+    pip install torch-geometric
+    pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.7.0+cpu.html
+    
+    echo "✓ All dependencies installed"
 else
     echo "Warning: requirements.txt not found. Installing basic dependencies..."
     pip install torch torch-geometric scikit-learn matplotlib pandas numpy networkx
