@@ -82,6 +82,15 @@ class MAML(nn.Module):
                     # Skip this step if no valid data
                     continue
             
+            # Ensure pseudo_labels are within valid range
+            num_classes = logits.size(1)
+            pseudo_labels = torch.clamp(pseudo_labels, 0, num_classes - 1)
+            
+            # Debug: check label range
+            if pseudo_labels.max() >= num_classes:
+                print(f"WARNING: Label out of bounds - max label: {pseudo_labels.max()}, num_classes: {num_classes}")
+                pseudo_labels = pseudo_labels % num_classes  # Wrap around
+            
             # Compute loss với pseudo-labels
             loss = F.cross_entropy(logits, pseudo_labels)
             
@@ -367,7 +376,18 @@ class MetaPseudoLabelOptimizer:
             temperature = F.softplus(self.meta_params['clustering_temperature'])
             # Simplified clustering logic here...
         
-        return result['labels']
+        # Ensure labels are in valid range for the model
+        num_classes = self.base_model.num_classes
+        labels = result['labels']
+        
+        # Clamp labels to valid range
+        labels = torch.clamp(labels, 0, num_classes - 1)
+        
+        # If labels are still out of range, use modulo
+        if labels.max() >= num_classes:
+            labels = labels % num_classes
+        
+        return labels
     
     def _split_episode(self, data: Data, support_ratio: float = 0.7) -> Tuple[Data, Data]:
         """Split episode into support và query sets"""

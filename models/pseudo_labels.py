@@ -70,7 +70,13 @@ class PseudoLabelGenerator:
     def _estimate_num_clusters(self, data: Data, embeddings: Optional[torch.Tensor] = None) -> int:
         """Estimate optimal number of clusters"""
         
-        max_clusters = min(20, data.num_nodes // 10)  # Heuristic
+        # Conservative estimation - ensure it doesn't exceed model capacity
+        min_clusters = 2
+        max_clusters = min(10, data.num_nodes // 5, data.num_nodes - 1)  # More conservative
+        
+        # Ensure at least 2 clusters but not more than reasonable
+        if max_clusters < min_clusters:
+            max_clusters = min_clusters
         
         if embeddings is not None:
             # Use embeddings for estimation
@@ -87,9 +93,9 @@ class PseudoLabelGenerator:
         
         # Try different number of clusters and find best silhouette score
         best_score = -1
-        best_k = 2
+        best_k = min_clusters
         
-        for k in range(2, min(max_clusters + 1, X.shape[0])):
+        for k in range(min_clusters, min(max_clusters + 1, X.shape[0])):
             try:
                 kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
                 cluster_labels = kmeans.fit_predict(X)
