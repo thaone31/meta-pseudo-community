@@ -36,7 +36,8 @@ class PseudoLabelGenerator:
             'dbscan': self._dbscan_clustering,
             'louvain': self._louvain_clustering,
             'leiden': self._leiden_clustering,
-            'modularity': self._modularity_clustering
+            'modularity': self._modularity_clustering,
+            'fallback': self._simple_fallback_clustering
         }
         
         if method not in self.methods:
@@ -274,37 +275,6 @@ class PseudoLabelGenerator:
             labels = torch.arange(data.num_nodes, dtype=torch.long) % max(1, num_clusters)
             confidence_scores = torch.ones(data.num_nodes, dtype=torch.float) * 0.5
             return labels, confidence_scores
-                adj_matrix = torch.sparse_coo_tensor(
-                    edge_index,
-                    torch.ones(edge_index.size(1)),
-                    (data.num_nodes, data.num_nodes)
-                ).to_dense().numpy()
-                X = adj_matrix
-        
-        # DBSCAN
-        eps = 0.5
-        min_samples = max(5, data.num_nodes // 100)
-        
-        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-        labels = dbscan.fit_predict(X)
-        
-        # Handle noise points (-1 labels)
-        if -1 in labels:
-            # Assign noise points to nearest cluster
-            unique_labels = np.unique(labels[labels != -1])
-            if len(unique_labels) == 0:
-                # All noise, fallback to random
-                labels = np.random.randint(0, num_clusters, data.num_nodes)
-            else:
-                noise_mask = labels == -1
-                labels[noise_mask] = np.random.choice(unique_labels, noise_mask.sum())
-        
-        # Confidence scores (core samples have higher confidence)
-        confidence_scores = np.ones(data.num_nodes) * 0.5
-        if hasattr(dbscan, 'core_sample_indices_'):
-            confidence_scores[dbscan.core_sample_indices_] = 0.9
-        
-        return torch.LongTensor(labels), torch.FloatTensor(confidence_scores)
     
     def _louvain_clustering(self, data: Data, embeddings: Optional[torch.Tensor],
                           num_clusters: int) -> Tuple[torch.Tensor, torch.Tensor]:
