@@ -45,9 +45,9 @@ class DatasetDownloader:
             print(f"Downloading {dataset_name}...")
             dataset = Planetoid(root=f"{self.data_dir}/pyg", name=dataset_name)
             
-        # Reddit dataset
-        print("Downloading Reddit...")
-        reddit = Reddit(root=f"{self.data_dir}/pyg/Reddit")
+        # Reddit dataset (skip for now - too large for initial testing)
+        # print("Downloading Reddit...")
+        # reddit = Reddit(root=f"{self.data_dir}/pyg/Reddit")
         
         # Amazon dataset
         print("Downloading Amazon...")
@@ -56,6 +56,8 @@ class DatasetDownloader:
         # DBLP dataset  
         print("Downloading DBLP...")
         dblp = DBLP(root=f"{self.data_dir}/pyg/DBLP")
+        
+        print("✓ Core PyTorch Geometric datasets downloaded successfully")
     
     def download_real_world_networks(self):
         """Download real-world network datasets"""
@@ -81,12 +83,12 @@ class DatasetDownloader:
             
             print("Generating LFR benchmark networks...")
             
-            # Các tham số khác nhau cho LFR networks
+            # Các tham số khác nhau cho LFR networks - improved parameters
             lfr_params = [
-                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 20, 'seed': 42},
-                {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'average_degree': 15, 'seed': 42},
-                {'n': 2000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.2, 'average_degree': 25, 'seed': 42},
-                {'n': 5000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 30, 'seed': 42},
+                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 20, 'min_community': 50, 'max_community': 100, 'seed': 42},
+                {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'average_degree': 15, 'min_community': 30, 'max_community': 80, 'seed': 42},
+                {'n': 2000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.2, 'average_degree': 25, 'min_community': 60, 'max_community': 150, 'seed': 42},
+                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.15, 'average_degree': 18, 'min_community': 40, 'max_community': 90, 'seed': 123},
             ]
             
             for i, params in enumerate(lfr_params):
@@ -135,5 +137,30 @@ class DatasetDownloader:
 
 
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Download datasets for community detection")
+    parser.add_argument("--all", action="store_true", help="Download all datasets")
+    parser.add_argument("--pyg-only", action="store_true", help="Download only PyTorch Geometric datasets")
+    parser.add_argument("--core-only", action="store_true", help="Download only core datasets (Cora, CiteSeer, PubMed)")
+    parser.add_argument("--skip-reddit", action="store_true", help="Skip Reddit dataset (too large)")
+    parser.add_argument("--skip-lfr", action="store_true", help="Skip LFR synthetic networks")
+    
+    args = parser.parse_args()
+    
     downloader = DatasetDownloader()
-    downloader.download_all()
+    
+    if args.core_only:
+        print("Downloading core datasets only (Cora, CiteSeer, PubMed)...")
+        # Just download the small citation networks
+        datasets = ['Cora', 'CiteSeer', 'PubMed']
+        for dataset_name in datasets:
+            print(f"Downloading {dataset_name}...")
+            from torch_geometric.datasets import Planetoid
+            dataset = Planetoid(root=f"{downloader.data_dir}/pyg", name=dataset_name)
+        print("✓ Core datasets downloaded successfully!")
+    elif args.pyg_only:
+        print("Downloading PyTorch Geometric datasets only...")
+        downloader.download_pyg_datasets()
+    else:
+        downloader.download_all()

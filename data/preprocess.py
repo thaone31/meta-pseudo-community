@@ -6,8 +6,12 @@ import os
 import numpy as np
 import networkx as nx
 import torch
+import warnings
 from torch_geometric.data import Data, DataLoader
 from torch_geometric.utils import to_networkx, from_networkx
+
+# Suppress sklearn warnings for cleaner output
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="sklearn")
 from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.preprocessing import StandardScaler
 import pickle
@@ -40,15 +44,15 @@ class GraphPreprocessor:
     
     def process_pyg_datasets(self):
         """Process PyTorch Geometric datasets"""
-        from torch_geometric.datasets import Planetoid, Reddit, Amazon, DBLP
+        from torch_geometric.datasets import Planetoid, Amazon, DBLP
         
         datasets = {
             'Cora': Planetoid(root=f"{self.raw_data_dir}/pyg", name='Cora'),
             'CiteSeer': Planetoid(root=f"{self.raw_data_dir}/pyg", name='CiteSeer'),
             'PubMed': Planetoid(root=f"{self.raw_data_dir}/pyg", name='PubMed'),
-            'Reddit': Reddit(root=f"{self.raw_data_dir}/pyg/Reddit"),
-            'Amazon': Amazon(root=f"{self.raw_data_dir}/pyg/Amazon", name="Computers"),
-            'DBLP': DBLP(root=f"{self.raw_data_dir}/pyg/DBLP")
+            # 'Reddit': Reddit(root=f"{self.raw_data_dir}/pyg/Reddit"),  # Skip for now - too large
+            # 'Amazon': Amazon(root=f"{self.raw_data_dir}/pyg/Amazon", name="Computers"),
+            # 'DBLP': DBLP(root=f"{self.raw_data_dir}/pyg/DBLP")
         }
         
         for name, dataset in datasets.items():
