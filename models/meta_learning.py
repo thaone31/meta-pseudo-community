@@ -283,19 +283,25 @@ class MetaPseudoLabelOptimizer:
         prepared_episodes = []
         
         for episode_data in episodes:
-            # Generate pseudo-labels với current meta-parameters
-            pseudo_labels = self._generate_meta_pseudo_labels(episode_data)
-            
-            # Split episode into support và query
+            # Split episode into support và query first
             support_data, query_data = self._split_episode(episode_data)
             
-            prepared_episodes.append((support_data, query_data, pseudo_labels))
+            # Generate pseudo-labels for support set only (for training)
+            support_pseudo_labels = self._generate_meta_pseudo_labels(support_data)
+            
+            # Generate pseudo-labels for query set (for evaluation)
+            query_pseudo_labels = self._generate_meta_pseudo_labels(query_data)
+            
+            prepared_episodes.append((support_data, query_data, support_pseudo_labels, query_pseudo_labels))
         
         # Meta-update base model
         if isinstance(self.meta_learner, MAML):
-            meta_loss = self.meta_learner.meta_update(prepared_episodes)
+            # Prepare episodes in the format MAML expects: (support, query, support_labels)
+            maml_episodes = [(support, query, support_labels) for support, query, support_labels, _ in prepared_episodes]
+            meta_loss = self.meta_learner.meta_update(maml_episodes)
         else:  # Reptile
-            task_episodes = [(support, pseudo_labels) for support, query, pseudo_labels in prepared_episodes]
+            # Prepare episodes in the format Reptile expects: (support, support_labels)
+            task_episodes = [(support, support_labels) for support, query, support_labels, _ in prepared_episodes]
             self.meta_learner.meta_update(task_episodes)
             meta_loss = 0.0  # Reptile doesn't return loss
         
@@ -381,16 +387,16 @@ class MetaPseudoLabelOptimizer:
         
         return subgraph_data
     
-    def _update_meta_parameters(self, episodes: List[Tuple[Data, Data, torch.Tensor]]):
+    def _update_meta_parameters(self, episodes: List[Tuple[Data, Data, torch.Tensor, torch.Tensor]]):
         """Update meta-parameters based on episode performance"""
         
         self.meta_param_optimizer.zero_grad()
         
         total_loss = 0
         
-        for support_data, query_data, pseudo_labels in episodes:
-            # Evaluate pseudo-label quality
-            quality_loss = self._compute_pseudo_label_quality_loss(support_data, pseudo_labels)
+        for support_data, query_data, support_labels, query_labels in episodes:
+            # Evaluate pseudo-label quality on query set
+            quality_loss = self._compute_pseudo_label_quality_loss(query_data, query_labels)
             total_loss += quality_loss
         
         if total_loss > 0:
