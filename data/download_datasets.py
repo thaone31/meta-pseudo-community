@@ -60,16 +60,18 @@ class DatasetDownloader:
     def download_real_world_networks(self):
         """Download real-world network datasets"""
         
-        # SNAP datasets URLs
-        snap_datasets = {
-            'LiveJournal': 'https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz',
-            'Orkut': 'https://snap.stanford.edu/data/com-orkut.ungraph.txt.gz',
-            'Youtube': 'https://snap.stanford.edu/data/com-youtube.ungraph.txt.gz'
-        }
+        print("Skipping large SNAP datasets to avoid connection timeouts...")
+        print("Using PyTorch Geometric datasets instead: Cora, CiteSeer, PubMed, Reddit, Amazon, DBLP")
         
-        for name, url in snap_datasets.items():
-            print(f"Downloading {name} from SNAP...")
-            self._download_file(url, f"{self.data_dir}/snap/{name}.txt.gz")
+        # Note: Large SNAP datasets (LiveJournal, Orkut, Youtube) can be downloaded manually if needed
+        # snap_datasets = {
+        #     'LiveJournal': 'https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz',
+        #     'Orkut': 'https://snap.stanford.edu/data/com-orkut.ungraph.txt.gz', 
+        #     'Youtube': 'https://snap.stanford.edu/data/com-youtube.ungraph.txt.gz'
+        # }
+        
+        # Skip SNAP downloads for now to avoid timeouts
+        pass
     
     def generate_lfr_networks(self):
         """Generate synthetic LFR benchmark networks"""

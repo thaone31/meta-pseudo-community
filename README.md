@@ -40,9 +40,25 @@ meta-pseudo-community/
 
 ## Cài đặt
 
+### Tự động (Khuyến nghị)
 ```bash
-pip install -r requirements.txt
+./setup.sh
 ```
+
+### Thủ công
+```bash
+# Tạo virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Cài đặt dependencies chính
+pip install -r requirements.txt
+
+# Cài đặt PyTorch Geometric (có thể cần cài thủ công)
+pip install torch-geometric torch-scatter torch-sparse torch-cluster
+```
+
+**Lưu ý**: Dự án đã được tối ưu hóa cho Python 3.12. Một số dependencies nâng cao có thể cần cài đặt thủ công.
 
 ## Sử dụng
 
@@ -69,12 +85,17 @@ python experiments/compare_baselines.py
 
 ## Bộ dữ liệu
 
-### Real-world graphs:
-- Reddit, Amazon, DBLP, PubMed, CiteSeer, Cora
-- LiveJournal, Orkut, Youtube, Friendster
+### PyTorch Geometric datasets (Sẵn sàng):
+- **Citation Networks**: Cora, CiteSeer, PubMed
+- **Social Network**: Reddit  
+- **E-commerce**: Amazon-Computers
+- **Academic**: DBLP (co-author network)
 
 ### Synthetic datasets:
 - LFR benchmark graphs với ground truth
+- Stochastic Block Models
+
+**Lưu ý**: Các dataset lớn từ SNAP (LiveJournal, Orkut, Youtube) có thể được download thủ công nếu cần.
 
 ## Baselines SOTA
 

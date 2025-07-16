@@ -39,7 +39,7 @@ class ExperimentRunner:
         
         # Default configuration
         self.default_config = {
-            'datasets': ['Cora', 'CiteSeer', 'PubMed', 'Amazon-Computers'],
+            'datasets': ['Cora', 'CiteSeer', 'PubMed', 'Amazon-Computers', 'DBLP'],
             'meta_learning_methods': ['Meta-GCN', 'Meta-GAT'],
             'baseline_methods': ['Louvain', 'Leiden', 'Spectral', 'DeepWalk', 'VGAE'],
             'metrics': ['NMI', 'ARI', 'Modularity', 'Conductance'],

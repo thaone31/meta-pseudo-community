@@ -73,14 +73,25 @@ meta-pseudo-community/
 # Clone/navigate to project directory
 cd meta-pseudo-community
 
-# Run automated setup
+# Run automated setup (RECOMMENDED)
+chmod +x setup.sh
 ./setup.sh
 
 # Or manual setup:
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# PyTorch Geometric may need manual installation:
+pip install torch-geometric torch-scatter torch-sparse torch-cluster
 ```
+
+**Setup Script Features:**
+- Automatically creates Python virtual environment
+- Installs core dependencies with error handling
+- Attempts PyTorch Geometric installation with fallback
+- Handles Python 3.12 compatibility issues
+- Provides clear error messages and next steps
 
 ### 2. Quick Test Run
 ```bash
@@ -164,11 +175,13 @@ jupyter notebook notebooks/
 ## 📊 Datasets and Benchmarks
 
 ### Standard Graph Datasets
-- **Citation Networks**: Cora, CiteSeer, PubMed
-- **Social Networks**: Facebook, Twitter subgraphs
-- **Amazon Co-purchase**: Computers, Photo categories
-- **Coauthor Networks**: CS, Physics collaboration graphs
-- **Actor Networks**: Film collaboration networks
+- **Citation Networks**: Cora, CiteSeer, PubMed (via PyTorch Geometric)
+- **Social Networks**: Reddit (via PyTorch Geometric) 
+- **E-commerce Networks**: Amazon-Computers (via PyTorch Geometric)
+- **Academic Networks**: DBLP co-author network (via PyTorch Geometric)
+- **Large-scale Networks**: LiveJournal, Orkut, Youtube (manual download if needed)
+
+**Note**: Project optimized for reliable datasets. Large SNAP datasets can be added manually if computational resources allow.
 
 ### Synthetic Datasets
 - **LFR Benchmark**: Configurable community structure
@@ -349,7 +362,26 @@ python -c "import torch; print(torch.cuda.is_available())"
 pip install torch torch-geometric -f https://pytorch-geometric.com/whl/torch-2.0.0+cu118.html
 ```
 
-**2. Memory Issues**
+**2. Connection Timeouts (Dataset Download)**
+```bash
+# If SNAP datasets fail to download, use alternative approach:
+python data/download_datasets.py --pyg-only  # Only PyTorch Geometric datasets
+
+# Or download large datasets manually:
+# wget https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz -P data/raw/snap/
+```
+
+**3. Python 3.12 Compatibility Issues**
+```bash
+# Some packages may not support Python 3.12 yet
+# Use requirements.txt (core dependencies) first:
+pip install -r requirements.txt
+
+# Then try optional dependencies:
+pip install -r requirements-optional.txt  # If this file exists
+```
+
+**4. Memory Issues**
 ```python
 # Reduce batch size in configs
 batch_size: 16  # Instead of 32
@@ -358,7 +390,7 @@ batch_size: 16  # Instead of 32
 gradient_checkpointing: true
 ```
 
-**3. Slow Training**
+**5. Slow Training**
 ```python
 # Enable mixed precision
 use_amp: true
