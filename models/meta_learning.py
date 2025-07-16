@@ -50,12 +50,37 @@ class MAML(nn.Module):
     def _inner_loop(self, support_data: Data, pseudo_labels: torch.Tensor) -> OrderedDict:
         """Inner loop adaptation"""
         
+        # Debug: check dimensions
+        if support_data.num_nodes != pseudo_labels.size(0):
+            print(f"WARNING: Dimension mismatch - support_data.num_nodes: {support_data.num_nodes}, pseudo_labels.size(0): {pseudo_labels.size(0)}")
+            # Adjust pseudo_labels to match support_data
+            if pseudo_labels.size(0) > support_data.num_nodes:
+                pseudo_labels = pseudo_labels[:support_data.num_nodes]
+            else:
+                # Pad with zeros (or repeat existing labels)
+                if support_data.num_nodes > 0 and pseudo_labels.size(0) > 0:
+                    repeat_factor = (support_data.num_nodes + pseudo_labels.size(0) - 1) // pseudo_labels.size(0)
+                    pseudo_labels = pseudo_labels.repeat(repeat_factor)[:support_data.num_nodes]
+                else:
+                    pseudo_labels = torch.zeros(support_data.num_nodes, dtype=torch.long, device=pseudo_labels.device)
+        
         # Create a copy of model parameters
         params = OrderedDict(self.model.named_parameters())
         
         for step in range(self.num_inner_steps):
             # Forward pass với current parameters
             logits = self._forward_with_params(support_data, params)
+            
+            # Ensure logits and pseudo_labels have matching dimensions
+            if logits.size(0) != pseudo_labels.size(0):
+                print(f"WARNING: Logits-labels mismatch - logits: {logits.shape}, pseudo_labels: {pseudo_labels.shape}")
+                min_size = min(logits.size(0), pseudo_labels.size(0))
+                if min_size > 0:
+                    logits = logits[:min_size]
+                    pseudo_labels = pseudo_labels[:min_size]
+                else:
+                    # Skip this step if no valid data
+                    continue
             
             # Compute loss với pseudo-labels
             loss = F.cross_entropy(logits, pseudo_labels)
@@ -348,12 +373,31 @@ class MetaPseudoLabelOptimizer:
         """Split episode into support và query sets"""
         
         num_nodes = data.num_nodes
-        num_support = int(num_nodes * support_ratio)
+        
+        # Ensure minimum nodes for both sets
+        if num_nodes < 2:
+            # Too few nodes, return duplicated data
+            return data, data
+        
+        # Calculate split with minimum guarantees
+        min_support = max(1, num_nodes // 3)  # At least 1 node or 1/3 of nodes
+        max_support = num_nodes - 1  # Leave at least 1 for query
+        
+        num_support = max(min_support, min(max_support, int(num_nodes * support_ratio)))
+        num_query = num_nodes - num_support
+        
+        # Ensure both sets have at least 1 node
+        if num_support == 0:
+            num_support = 1
+            num_query = num_nodes - 1
+        elif num_query == 0:
+            num_query = 1
+            num_support = num_nodes - 1
         
         # Random split
         perm = torch.randperm(num_nodes)
         support_nodes = perm[:num_support]
-        query_nodes = perm[num_support:]
+        query_nodes = perm[num_support:num_support + num_query]
         
         # Create subgraphs
         support_data = self._create_subgraph(data, support_nodes)
