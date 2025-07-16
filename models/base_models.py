@@ -23,16 +23,16 @@ class GCNEncoder(nn.Module):
         
         # Layers
         self.convs = nn.ModuleList()
-        self.batch_norms = nn.ModuleList()
+        self.norms = nn.ModuleList()
         
         # First layer
         self.convs.append(GCNConv(input_dim, hidden_dim))
-        self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+        self.norms.append(nn.LayerNorm(hidden_dim))  # Use LayerNorm instead of BatchNorm
         
         # Hidden layers
         for _ in range(num_layers - 2):
             self.convs.append(GCNConv(hidden_dim, hidden_dim))
-            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+            self.norms.append(nn.LayerNorm(hidden_dim))
         
         # Output layer
         self.convs.append(GCNConv(hidden_dim, output_dim))
@@ -42,7 +42,7 @@ class GCNEncoder(nn.Module):
         
         for i in range(len(self.convs) - 1):
             x = self.convs[i](x, edge_index)
-            x = self.batch_norms[i](x)
+            x = self.norms[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         
@@ -63,16 +63,16 @@ class GATEncoder(nn.Module):
         self.dropout = dropout
         
         self.convs = nn.ModuleList()
-        self.batch_norms = nn.ModuleList()
+        self.norms = nn.ModuleList()
         
         # First layer
         self.convs.append(GATConv(input_dim, hidden_dim // heads, heads=heads, dropout=dropout))
-        self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+        self.norms.append(nn.LayerNorm(hidden_dim))
         
         # Hidden layers
         for _ in range(num_layers - 2):
             self.convs.append(GATConv(hidden_dim, hidden_dim // heads, heads=heads, dropout=dropout))
-            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
+            self.norms.append(nn.LayerNorm(hidden_dim))
         
         # Output layer (single head)
         self.convs.append(GATConv(hidden_dim, output_dim, heads=1, dropout=dropout))
@@ -82,7 +82,7 @@ class GATEncoder(nn.Module):
         
         for i in range(len(self.convs) - 1):
             x = self.convs[i](x, edge_index)
-            x = self.batch_norms[i](x)
+            x = self.norms[i](x)
             x = F.elu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         
@@ -129,14 +129,14 @@ class GINEncoder(nn.Module):
         )
         self.convs.append(GINConv(nn_out))
         
-        self.batch_norms = nn.ModuleList([nn.BatchNorm1d(hidden_dim) for _ in range(num_layers - 1)])
+        self.norms = nn.ModuleList([nn.LayerNorm(hidden_dim) for _ in range(num_layers - 1)])
     
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """Forward pass"""
         
         for i in range(len(self.convs) - 1):
             x = self.convs[i](x, edge_index)
-            x = self.batch_norms[i](x)
+            x = self.norms[i](x)
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         
