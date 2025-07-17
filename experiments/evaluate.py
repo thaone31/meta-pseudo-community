@@ -163,7 +163,7 @@ class MetaEvaluator:
         return model, meta_optimizer
     
     def evaluate_dataset(self, dataset_name: str, num_runs: int = 5) -> Dict:
-        """Evaluate trên một dataset"""
+        """Evaluate on a single dataset"""
         print(f"\nEvaluating on {dataset_name}...")
         
         if dataset_name not in self.data_loader.get_available_datasets():
@@ -237,7 +237,7 @@ class MetaEvaluator:
         return result
     
     def _aggregate_results(self, all_results: List[List[Dict]]) -> Dict:
-        """Aggregate results across multiple runs và episodes"""
+        """Aggregate results across multiple runs and episodes"""
         
         # Flatten all metrics
         all_metrics = []
@@ -262,7 +262,7 @@ class MetaEvaluator:
         return aggregated
     
     def evaluate_all_datasets(self) -> Dict:
-        """Evaluate trên tất cả available datasets"""
+        """Evaluate on all available datasets"""
         datasets = self.config.get('evaluation', {}).get('datasets')
         if datasets is None:
             datasets = self.data_loader.get_available_datasets()
@@ -334,7 +334,7 @@ class MetaEvaluator:
                     continue
     
     def compare_with_baselines(self, baseline_results_path: Optional[str] = None) -> Dict:
-        """Compare với baseline methods"""
+        """Compare with baseline methods"""
         if not baseline_results_path or not os.path.exists(baseline_results_path):
             print("No baseline results found for comparison")
             return {}

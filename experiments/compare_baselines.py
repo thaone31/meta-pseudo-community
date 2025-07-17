@@ -49,11 +49,11 @@ class BaselineComparator:
         
         print(f"Evaluating traditional methods on {dataset_name}...")
         
-        # Get methods từ config
+        # Get methods from config
         methods_config = self.config.get('baselines', {}).get('traditional', [])
         
         if not methods_config:
-            # Use all available methods với default parameters
+            # Use all available methods with default parameters
             return self.traditional_evaluator.evaluate_all_methods(data, ground_truth)
         
         # Evaluate specific methods
@@ -76,7 +76,7 @@ class BaselineComparator:
                     # Evaluate method
                     result = method.detect_communities(data)
                     
-                    # Add evaluation metrics nếu có ground truth
+                    # Add evaluation metrics if ground truth is available
                     if ground_truth is not None:
                         from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score
                         predicted_labels = result['labels'].numpy()
@@ -104,7 +104,7 @@ class BaselineComparator:
         
         print(f"Evaluating deep learning methods on {dataset_name}...")
         
-        # Get methods từ config
+        # Get methods from config
         methods_config = self.config.get('baselines', {}).get('deep_learning', [])
         
         results = {}
@@ -154,7 +154,7 @@ class BaselineComparator:
         return results
     
     def evaluate_dataset(self, dataset_name: str, num_runs: int = 1) -> Dict:
-        """Evaluate all methods trên một dataset"""
+        """Evaluate all methods on a single dataset"""
         
         print(f"\n{'='*50}")
         print(f"Evaluating dataset: {dataset_name}")
@@ -168,7 +168,7 @@ class BaselineComparator:
         dataset_info = self.data_loader.datasets[dataset_name]
         original_graph = dataset_info['original_graph'].to(self.device)
         
-        # Get ground truth nếu có
+        # Get ground truth if available
         ground_truth = None
         if 'ground_truth' in dataset_info and dataset_info['ground_truth']:
             # Convert ground truth communities to labels
@@ -255,7 +255,7 @@ class BaselineComparator:
         return aggregated
     
     def evaluate_all_datasets(self) -> Dict:
-        """Evaluate all methods trên tất cả datasets"""
+        """Evaluate all methods on all datasets"""
         
         datasets = self.config.get('data', {}).get('datasets', 
                                    self.data_loader.get_available_datasets())
@@ -420,7 +420,7 @@ def main():
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     
-    # Override config với command line arguments
+    # Override config with command line arguments
     if args.datasets:
         config.setdefault('data', {})['datasets'] = args.datasets
     

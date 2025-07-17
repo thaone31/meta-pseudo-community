@@ -81,12 +81,12 @@ class DatasetDownloader:
             
             print("Generating LFR benchmark networks...")
             
-            # Different parameters for LFR networks - improved parameters
+            # Different parameters for LFR networks - improved parameters with larger communities
             lfr_params = [
-                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 20, 'min_community': 50, 'max_community': 100, 'seed': 42},
-                {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'average_degree': 15, 'min_community': 30, 'max_community': 80, 'seed': 42},
-                {'n': 2000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.2, 'average_degree': 25, 'min_community': 60, 'max_community': 150, 'seed': 42},
-                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.15, 'average_degree': 18, 'min_community': 40, 'max_community': 90, 'seed': 123},
+                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 20, 'min_community': 100, 'max_community': 200, 'seed': 42},
+                {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'average_degree': 15, 'min_community': 80, 'max_community': 150, 'seed': 42},
+                {'n': 2000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.2, 'average_degree': 25, 'min_community': 150, 'max_community': 300, 'seed': 42},
+                {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.15, 'average_degree': 18, 'min_community': 120, 'max_community': 180, 'seed': 123},
             ]
             
             for i, params in enumerate(lfr_params):
@@ -98,10 +98,10 @@ class DatasetDownloader:
                     output_dir = f"{self.data_dir}/lfr/lfr_{i+1}"
                     os.makedirs(output_dir, exist_ok=True)
                     
-                    # Lưu graph
+                    # Save graph
                     nx.write_edgelist(G, f"{output_dir}/edges.txt", data=False)
                     
-                    # Lưu ground truth communities
+                    # Save ground truth communities
                     communities = {frozenset(G.nodes[v]['community']) for v in G}
                     with open(f"{output_dir}/communities.txt", 'w') as f:
                         for comm in communities:
@@ -117,7 +117,7 @@ class DatasetDownloader:
             print("Warning: Cannot generate LFR networks. Install networkx[extra] for LFR support.")
     
     def _download_file(self, url: str, output_path: str):
-        """Helper function để download file"""
+        """Helper function to download file"""
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         if os.path.exists(output_path):
