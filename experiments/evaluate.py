@@ -258,12 +258,16 @@ class MetaEvaluator:
     
     def evaluate_all_datasets(self) -> Dict:
         """Evaluate trên tất cả available datasets"""
-        datasets = self.config.get('evaluation', {}).get('datasets', 
-                                  self.data_loader.get_available_datasets())
+        datasets = self.config.get('evaluation', {}).get('datasets')
+        if datasets is None:
+            datasets = self.data_loader.get_available_datasets()
         
         num_runs = self.config.get('evaluation', {}).get('num_runs', 5)
         
         all_results = {}
+        
+        print(f"Available datasets: {self.data_loader.get_available_datasets()}")
+        print(f"Evaluating datasets: {datasets}")
         
         for dataset_name in datasets:
             if dataset_name in self.data_loader.get_available_datasets():
@@ -421,6 +425,23 @@ def main():
     else:
         # Use default config
         config = {
+            'model': {
+                'base_model': {
+                    'encoder_type': 'gcn',
+                    'hidden_dim': 128,
+                    'embedding_dim': 64,
+                    'num_classes': 10,
+                    'num_layers': 2,
+                    'dropout': 0.1,
+                    'heads': 8
+                },
+                'meta_learner': {
+                    'algorithm': 'maml'
+                },
+                'pseudo_label': {
+                    'methods': ['spectral', 'kmeans']
+                }
+            },
             'evaluation': {
                 'datasets': args.datasets,
                 'num_runs': args.num_runs
