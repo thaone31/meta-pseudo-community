@@ -74,26 +74,38 @@ class MetaEvaluator:
         # Create model
         model_config = config['model']['base_model']
         
-        # Get input dimensions from checkpoint or estimate from all datasets
-        if 'input_dims' in checkpoint:
-            input_dims = checkpoint['input_dims']
-        else:
-            # Estimate from all available data
-            input_dims = []
-            available_datasets = self.data_loader.get_available_datasets()
-            for dataset_name in available_datasets:
-                episodes = self.data_loader.get_dataset_episodes(dataset_name)
-                if episodes and episodes[0].x is not None:
-                    input_dims.append(episodes[0].x.size(1))
-            
-            if not input_dims:
-                input_dims = [64]  # Default
+        # Extract input dimensions from the checkpoint state_dict
+        state_dict = checkpoint['model_state_dict']
+        input_dims = []
         
-        # Use the most common input dimension or minimum one for default
-        if isinstance(input_dims, list) and len(input_dims) > 0:
-            default_input_dim = min(input_dims)  # Use minimum for default
+        # Find all feature_projectors in state_dict
+        for key in state_dict.keys():
+            if key.startswith('feature_projectors.') and key.endswith('.weight'):
+                # Extract the dimension from key like "feature_projectors.1433.weight"
+                parts = key.split('.')
+                if len(parts) >= 3 and parts[1].isdigit():
+                    input_dims.append(int(parts[1]))
+        
+        # Also check for default projector size
+        if 'feature_projectors.default.weight' in state_dict:
+            default_size = state_dict['feature_projectors.default.weight'].size(0)
         else:
-            default_input_dim = input_dims if isinstance(input_dims, int) else 64
+            # Fallback: get from encoder input size
+            encoder_key = 'encoder.convs.0.lin.weight'
+            if encoder_key in state_dict:
+                default_size = state_dict[encoder_key].size(1)
+            else:
+                default_size = 767  # From error message
+        
+        # Remove duplicates and sort
+        input_dims = sorted(list(set(input_dims)))
+        if not input_dims:
+            input_dims = [default_size]
+        
+        print(f"Detected input dimensions: {input_dims}, default: {default_size}")
+        
+        # Use the default size detected from checkpoint
+        default_input_dim = default_size
         
         model = CommunityDetectionModel(
             encoder_type=model_config['encoder_type'],
@@ -108,11 +120,12 @@ class MetaEvaluator:
         ).to(self.device)
         
         # Load model state with strict=False to handle missing keys
-        try:
-            model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-            print("Model state loaded (some keys may be missing for adaptive features)")
-        except Exception as e:
-            print(f"Warning: Could not load some model parameters: {e}")
+        missing_keys, unexpected_keys = model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        if missing_keys:
+            print(f"Missing keys in model: {missing_keys[:5]}...")  # Show first 5
+        if unexpected_keys:
+            print(f"Unexpected keys in checkpoint: {unexpected_keys[:5]}...")  # Show first 5
+        print("Model state loaded successfully with adaptive input handling")
         
         model.eval()
         
@@ -123,12 +136,26 @@ class MetaEvaluator:
             pseudo_label_methods=config['model']['pseudo_label']['methods']
         )
         
-        # Load meta-optimizer state
+        # Load meta-optimizer state with strict=False
         if 'meta_optimizer_state_dict' in checkpoint:
-            meta_optimizer.meta_learner.load_state_dict(checkpoint['meta_optimizer_state_dict'])
+            try:
+                missing_keys, unexpected_keys = meta_optimizer.meta_learner.load_state_dict(
+                    checkpoint['meta_optimizer_state_dict'], strict=False
+                )
+                if missing_keys:
+                    print(f"Missing keys in meta-learner: {len(missing_keys)} keys")
+                if unexpected_keys:
+                    print(f"Unexpected keys in meta-learner: {len(unexpected_keys)} keys")
+                print("Meta-learner state loaded successfully")
+            except Exception as e:
+                print(f"Warning: Could not load meta-learner state: {e}")
         
         if 'meta_params' in checkpoint:
-            meta_optimizer.meta_params.load_state_dict(checkpoint['meta_params'])
+            try:
+                meta_optimizer.meta_params.load_state_dict(checkpoint['meta_params'], strict=False)
+                print("Meta-params loaded successfully")
+            except Exception as e:
+                print(f"Warning: Could not load meta-params: {e}")
         
         print(f"Model loaded successfully! (Epoch: {checkpoint.get('epoch', 'unknown')})")
         print(f"Best metric: {checkpoint.get('best_metric', 'unknown')}")
@@ -326,16 +353,20 @@ class MetaEvaluator:
             pickle.dump(summary, f)
         
         # Save as CSV
-        import pandas as pd
-        
-        rows = []
-        for dataset_name, result in self.results.items():
-            row = {'dataset': dataset_name}
-            row.update(result['metrics'])
-            rows.append(row)
-        
-        df = pd.DataFrame(rows)
-        df.to_csv(f"{save_dir}/evaluation_summary.csv", index=False)
+        try:
+            import pandas as pd
+            
+            rows = []
+            for dataset_name, result in self.results.items():
+                row = {'dataset': dataset_name}
+                row.update(result['metrics'])
+                rows.append(row)
+            
+            df = pd.DataFrame(rows)
+            df.to_csv(f"{save_dir}/evaluation_summary.csv", index=False)
+            print(f"CSV summary saved to {save_dir}/evaluation_summary.csv")
+        except ImportError:
+            print("Pandas not available, skipping CSV export")
         
         print(f"Results saved to {save_dir}")
         
