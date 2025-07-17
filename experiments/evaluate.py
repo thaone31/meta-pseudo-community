@@ -32,11 +32,11 @@ class MetaEvaluator:
         self.model_path = model_path
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
+        # Initialize data loader first
+        self.data_loader = EpisodeDataLoader(processed_data_dir="./data/processed")
+        
         # Load model
         self.model, self.meta_optimizer = self._load_model()
-        
-        # Initialize data loader
-        self.data_loader = EpisodeDataLoader(processed_data_dir="./data/processed")
         
         # Results storage
         self.results = {}
