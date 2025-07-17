@@ -199,6 +199,11 @@ class MetaEvaluator:
                     # Get embeddings
                     embeddings = self.model.get_embeddings(episode.x, episode.edge_index)
                     
+                    # Check for NaN/inf values and replace with zeros
+                    if torch.isnan(embeddings).any() or torch.isinf(embeddings).any():
+                        print(f"Warning: Found NaN/inf values in embeddings for {dataset_name}, replacing with zeros")
+                        embeddings = torch.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
+                    
                     # Compute metrics
                     metrics = compute_all_metrics(
                         pred_labels=pseudo_labels,
@@ -299,25 +304,34 @@ class MetaEvaluator:
                 embeddings = embeddings_list[i]
                 labels = labels_list[i]
                 
-                # Graph visualization
-                plot_graph_communities(
-                    episode, labels,
-                    title=f"{dataset_name} Episode {i+1} Communities",
-                    save_path=f"{dataset_save_dir}/episode_{i+1}_graph.png"
-                )
+                # Check for NaN values in embeddings and labels
+                if np.isnan(embeddings).any() or np.isinf(embeddings).any():
+                    print(f"Warning: Found NaN/inf values in embeddings for {dataset_name} episode {i+1}, skipping visualization")
+                    continue
                 
-                # Embeddings visualization
-                plot_embeddings_2d(
-                    embeddings, labels, method='tsne',
-                    title=f"{dataset_name} Episode {i+1} t-SNE",
-                    save_path=f"{dataset_save_dir}/episode_{i+1}_tsne.png"
-                )
-                
-                plot_embeddings_2d(
-                    embeddings, labels, method='pca',
-                    title=f"{dataset_name} Episode {i+1} PCA",
-                    save_path=f"{dataset_save_dir}/episode_{i+1}_pca.png"
-                )
+                try:
+                    # Graph visualization
+                    plot_graph_communities(
+                        episode, labels,
+                        title=f"{dataset_name} Episode {i+1} Communities",
+                        save_path=f"{dataset_save_dir}/episode_{i+1}_graph.png"
+                    )
+                    
+                    # Embeddings visualization
+                    plot_embeddings_2d(
+                        embeddings, labels, method='tsne',
+                        title=f"{dataset_name} Episode {i+1} t-SNE",
+                        save_path=f"{dataset_save_dir}/episode_{i+1}_tsne.png"
+                    )
+                    
+                    plot_embeddings_2d(
+                        embeddings, labels, method='pca',
+                        title=f"{dataset_name} Episode {i+1} PCA",
+                        save_path=f"{dataset_save_dir}/episode_{i+1}_pca.png"
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to create visualization for {dataset_name} episode {i+1}: {e}")
+                    continue
     
     def compare_with_baselines(self, baseline_results_path: Optional[str] = None) -> Dict:
         """Compare với baseline methods"""
