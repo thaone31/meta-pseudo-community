@@ -74,34 +74,46 @@ class MetaEvaluator:
         # Create model
         model_config = config['model']['base_model']
         
-        # Get input dimension from checkpoint or estimate
-        if 'input_dim' in checkpoint:
-            input_dim = checkpoint['input_dim']
+        # Get input dimensions from checkpoint or estimate from all datasets
+        if 'input_dims' in checkpoint:
+            input_dims = checkpoint['input_dims']
         else:
-            # Estimate from available data
+            # Estimate from all available data
+            input_dims = []
             available_datasets = self.data_loader.get_available_datasets()
-            if available_datasets:
-                sample_episodes = self.data_loader.get_dataset_episodes(available_datasets[0])
-                if sample_episodes and sample_episodes[0].x is not None:
-                    input_dim = sample_episodes[0].x.size(1)
-                else:
-                    input_dim = 64
-            else:
-                input_dim = 64
+            for dataset_name in available_datasets:
+                episodes = self.data_loader.get_dataset_episodes(dataset_name)
+                if episodes and episodes[0].x is not None:
+                    input_dims.append(episodes[0].x.size(1))
+            
+            if not input_dims:
+                input_dims = [64]  # Default
+        
+        # Use the most common input dimension or minimum one for default
+        if isinstance(input_dims, list) and len(input_dims) > 0:
+            default_input_dim = min(input_dims)  # Use minimum for default
+        else:
+            default_input_dim = input_dims if isinstance(input_dims, int) else 64
         
         model = CommunityDetectionModel(
             encoder_type=model_config['encoder_type'],
-            input_dim=input_dim,
+            input_dim=default_input_dim,
             hidden_dim=model_config['hidden_dim'],
             embedding_dim=model_config['embedding_dim'],
             num_classes=model_config.get('num_classes', 10),
             num_layers=model_config.get('num_layers', 2),
             dropout=model_config.get('dropout', 0.1),
-            heads=model_config.get('heads', 8)
+            heads=model_config.get('heads', 8),
+            adaptive_input=True  # Enable adaptive input
         ).to(self.device)
         
-        # Load model state
-        model.load_state_dict(checkpoint['model_state_dict'])
+        # Load model state with strict=False to handle missing keys
+        try:
+            model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+            print("Model state loaded (some keys may be missing for adaptive features)")
+        except Exception as e:
+            print(f"Warning: Could not load some model parameters: {e}")
+        
         model.eval()
         
         # Create meta-optimizer
