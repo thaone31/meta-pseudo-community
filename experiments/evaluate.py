@@ -9,7 +9,7 @@ import yaml
 import torch
 import numpy as np
 import pickle
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
