@@ -75,7 +75,14 @@ python experiments/train_meta_pseudo.py --config configs/meta_gcn.yaml
 
 ### 3. Đánh giá
 ```bash
-python experiments/evaluate.py --model_path results/best_model.pth
+# Đánh giá model đã train
+python experiments/evaluate.py --model_path results/meta_gcn/best_model.pth
+
+# Hoặc chỉ định config cụ thể
+python experiments/evaluate.py --model_path results/meta_gcn/best_model.pth --config configs/meta_gcn.yaml
+
+# Đánh giá trên datasets cụ thể
+python experiments/evaluate.py --model_path results/meta_gcn/best_model.pth --datasets Cora CiteSeer PubMed
 ```
 
 ### 4. So sánh với SOTA

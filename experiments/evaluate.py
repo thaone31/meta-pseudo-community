@@ -45,7 +45,30 @@ class MetaEvaluator:
         """Load trained model"""
         print(f"Loading model from {self.model_path}")
         
-        checkpoint = torch.load(self.model_path, map_location=self.device)
+        # Check if file exists
+        if not os.path.exists(self.model_path):
+            # Try to find in common locations
+            possible_paths = [
+                self.model_path,
+                f"results/{self.model_path}",
+                f"results/meta_gcn/{os.path.basename(self.model_path)}",
+                f"results/training/{os.path.basename(self.model_path)}"
+            ]
+            
+            found_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    found_path = path
+                    break
+            
+            if found_path:
+                self.model_path = found_path
+                print(f"Found model at: {self.model_path}")
+            else:
+                raise FileNotFoundError(f"Model not found at {self.model_path} or common locations")
+        
+        # Load with weights_only=False to handle numpy objects
+        checkpoint = torch.load(self.model_path, map_location=self.device, weights_only=False)
         config = checkpoint.get('config', self.config)
         
         # Create model
