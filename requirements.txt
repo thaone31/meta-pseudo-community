@@ -10,7 +10,6 @@ torchvision>=0.16.0
 
 # Graph processing and community detection
 networkx>=3.0
-community>=1.0.0
 python-louvain>=0.16
 
 # Visualization
