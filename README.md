@@ -1,16 +1,16 @@
-# Meta-Learning cho Pseudo-Labels trong Community Detection
+# Meta-Learning for Pseudo-Labels in Community Detection
 
-Dự án nghiên cứu về việc áp dụng Meta-Learning để cải thiện việc sinh và cập nhật pseudo-labels cho bài toán Community Detection trong các mạng phức tạp.
+A research project applying Meta-Learning to improve pseudo-label generation and updating for Community Detection in complex networks.
 
-## Tổng quan
+## Overview
 
-Pipeline này kết hợp Meta-Learning với Pseudo-Labels để cải thiện hiệu suất phát hiện cộng đồng trên các graph phức tạp. Ý tưởng chính là sử dụng meta-learner để học cách sinh và cập nhật pseudo-labels tối ưu cho từng loại graph/episode khác nhau.
+This pipeline combines Meta-Learning with Pseudo-Labels to improve community detection performance on complex graphs. The core idea is to use a meta-learner to learn how to generate and update optimal pseudo-labels for different types of graphs/episodes.
 
-## Kiến trúc tổng thể
+## Overall Architecture
 
 ### 1. Base Model
 - Backbone: GCN/GAT/GIN (Graph Neural Networks)
-- Hỗ trợ: Spectral clustering, modularity-based methods
+- Support: Spectral clustering, modularity-based methods
 
 ### 2. Meta-Learner
 - MAML (Model-Agnostic Meta-Learning)
@@ -22,104 +22,233 @@ Pipeline này kết hợp Meta-Learning với Pseudo-Labels để cải thiện 
 - Clustering-based label generation
 - Confidence-based label refinement
 
-## Cấu trúc dự án
+## Project Structure
 
 ```
 meta-pseudo-community/
-├── data/                     # Dữ liệu và preprocessing
-├── models/                   # Các mô hình
-├── baselines/               # Các mô hình SOTA để so sánh
-├── utils/                   # Utilities và helpers
-├── experiments/             # Scripts thực nghiệm
-├── evaluation/              # Đánh giá và metrics
+├── data/                     # Data and preprocessing
+├── models/                   # Model implementations
+├── baselines/               # SOTA baseline models for comparison
+├── utils/                   # Utilities and helpers
+├── experiments/             # Experiment scripts
+├── evaluation/              # Evaluation and metrics
 ├── configs/                 # Configuration files
-├── results/                 # Kết quả thực nghiệm
-└── notebooks/               # Jupyter notebooks cho phân tích
-
+├── results/                 # Experiment results
+└── notebooks/               # Jupyter notebooks for analysis
 ```
 
-## Cài đặt
+## Installation
 
-### Tự động (Khuyến nghị)
+### Automated (Recommended)
 ```bash
 ./setup.sh
 ```
 
-### Thủ công
+### Manual Installation
 ```bash
-# Tạo virtual environment
+# Create virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Cài đặt dependencies chính
+# Install main dependencies
 pip install -r requirements.txt
 
-# Cài đặt PyTorch Geometric (có thể cần cài thủ công)
+# Install PyTorch Geometric (may require manual installation)
 pip install torch-geometric torch-scatter torch-sparse torch-cluster
 ```
 
-**Lưu ý**: Dự án đã được tối ưu hóa cho Python 3.12. Một số dependencies nâng cao có thể cần cài đặt thủ công.
+**Note**: This project has been optimized for Python 3.12. Some advanced dependencies may require manual installation.
 
-## Sử dụng
+## Quick Start
 
-### 1. Chuẩn bị dữ liệu
+### 1. Setup Environment
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd meta-pseudo-community
+
+# Run automated setup
+chmod +x setup.sh
+./setup.sh
+
+# Activate virtual environment
+source venv/bin/activate
+```
+
+### 2. Download and Prepare Datasets
+```bash
+# Download supported datasets (Cora, CiteSeer, PubMed, DBLP, Amazon)
 python data/download_datasets.py
-python data/preprocess.py
 ```
 
-### 2. Huấn luyện mô hình
+### 3. Quick Test Run
 ```bash
+# Run a quick experiment with minimal configuration
+python run_experiments.py --config quick
+```
+
+### 4. Train Meta-Learning Model
+```bash
+# Train with default configuration
 python experiments/train_meta_pseudo.py --config configs/meta_gcn.yaml
+
+# Train with custom parameters
+python experiments/train_meta_pseudo.py --model gcn --meta_learner maml --epochs 100
 ```
 
-### 3. Đánh giá
+### 5. Evaluate Model
 ```bash
-# Đánh giá model đã train
+# Evaluate a trained model
 python experiments/evaluate.py --model_path results/meta_gcn/best_model.pth
 
-# Hoặc chỉ định config cụ thể
-python experiments/evaluate.py --model_path results/meta_gcn/best_model.pth --config configs/meta_gcn.yaml
-
-# Đánh giá trên datasets cụ thể
+# Evaluate on specific datasets
 python experiments/evaluate.py --model_path results/meta_gcn/best_model.pth --datasets Cora CiteSeer PubMed
-```
 
-### 4. So sánh với SOTA
-```bash
+# Compare with baselines
 python experiments/compare_baselines.py
 ```
 
-## Bộ dữ liệu
+## Detailed Usage
 
-### PyTorch Geometric datasets (Sẵn sàng):
+### Training Configuration
+
+The training can be customized through YAML config files or command-line arguments:
+
+```bash
+# Using config file
+python experiments/train_meta_pseudo.py --config configs/meta_gcn.yaml
+
+# Using command-line arguments
+python experiments/train_meta_pseudo.py \
+    --model gcn \
+    --meta_learner maml \
+    --epochs 200 \
+    --meta_lr 0.001 \
+    --inner_lr 0.01 \
+    --batch_size 32
+```
+
+### Supported Models
+- **Base Models**: GCN, GAT, GIN, GraphSAGE
+- **Meta-Learners**: MAML, Reptile, Custom strategies
+- **Pseudo-Label Methods**: Embedding similarity, spectral clustering, modularity
+
+### Evaluation Metrics
+- **NMI** (Normalized Mutual Information)
+- **ARI** (Adjusted Rand Index) 
+- **Modularity**
+- **F1-score, Purity, Conductance**
+
+## Datasets
+
+### Supported Datasets (Auto-downloaded):
 - **Citation Networks**: Cora, CiteSeer, PubMed
-- **Social Network**: Reddit  
-- **E-commerce**: Amazon-Computers
+- **E-commerce**: Amazon-Computers  
 - **Academic**: DBLP (co-author network)
 
-### Synthetic datasets:
-- LFR benchmark graphs với ground truth
+### Synthetic Datasets:
+- LFR benchmark graphs with ground truth
 - Stochastic Block Models
 
-**Lưu ý**: Các dataset lớn từ SNAP (LiveJournal, Orkut, Youtube) có thể được download thủ công nếu cần.
+**Note**: Large datasets from SNAP (LiveJournal, Orkut, Youtube) are disabled by default but can be manually enabled if needed.
 
-## Baselines SOTA
+## SOTA Baselines
 
-- Traditional: DeepWalk, Node2Vec, Louvain, Leiden
-- Deep Learning: GraphSAGE, GCN, GAT, DGI, DMoN
-- Self-supervised: Deep Clustering, GCN-based pseudo-label
+- **Traditional**: DeepWalk, Node2Vec, Louvain, Leiden
+- **Deep Learning**: GraphSAGE, GCN, GAT, DGI, DMoN
+- **Self-supervised**: Deep Clustering, GCN-based pseudo-label
 
-## Metrics đánh giá
+## Troubleshooting
 
-- NMI (Normalized Mutual Information)
-- ARI (Adjusted Rand Index)
-- Modularity
-- F1-score, Purity, Conductance
+### Common Issues
 
-## Tác giả
+#### 1. Installation Problems
+```bash
+# If torch-geometric installation fails
+pip install torch-geometric torch-scatter torch-sparse torch-cluster --extra-index-url https://data.pyg.org/whl/torch-2.1.0+cpu.html
 
-[Tên tác giả]
+# For CUDA support (if available)
+pip install torch-geometric torch-scatter torch-sparse torch-cluster --extra-index-url https://data.pyg.org/whl/torch-2.1.0+cu118.html
+```
+
+#### 2. Memory Issues
+```bash
+# Run with reduced batch size
+python experiments/train_meta_pseudo.py --batch_size 16
+
+# Use gradient accumulation
+python experiments/train_meta_pseudo.py --accumulation_steps 4
+```
+
+#### 3. Dataset Download Issues
+```bash
+# Clear cache and retry
+rm -rf data/raw data/processed
+python data/download_datasets.py
+```
+
+#### 4. NaN Values in Embeddings
+The codebase includes automatic handling for NaN/infinity values in embeddings, but if you encounter issues:
+- Check input data quality
+- Reduce learning rates
+- Add gradient clipping
+
+### Performance Tips
+
+1. **For Quick Testing**: Use `--config quick` to run with minimal epochs and smaller datasets
+2. **For Production**: Use full configuration with proper validation splits
+3. **Memory Optimization**: Reduce batch size or use gradient accumulation
+4. **Speed**: Use fewer datasets in `run_experiments.py` for development
+
+## Configuration
+
+### Default Configurations
+- `configs/meta_gcn.yaml`: GCN with MAML meta-learning
+- `configs/meta_gat.yaml`: GAT with meta-learning
+- `configs/baseline.yaml`: Non-meta baseline configuration
+
+### Custom Configuration
+Create your own YAML config file:
+```yaml
+model:
+  name: "gcn"
+  hidden_dim: 64
+  num_layers: 2
+  
+meta_learner:
+  name: "maml"
+  meta_lr: 0.001
+  inner_lr: 0.01
+  inner_steps: 5
+
+training:
+  epochs: 100
+  batch_size: 32
+  datasets: ["Cora", "CiteSeer", "PubMed"]
+```
+
+## Results and Visualization
+
+After training, results are saved to:
+- `results/[experiment_name]/`: Model checkpoints and metrics
+- `results/[experiment_name]/plots/`: Visualization plots
+- `results/[experiment_name]/logs/`: Training logs
+
+Generate summary reports:
+```bash
+python utils/generate_summary.py --results_dir results/meta_gcn
+```
+
+## Contributing
+
+1. Follow the existing code structure
+2. Add tests for new features
+3. Update documentation for new functionality
+4. Ensure compatibility with Python 3.12
+
+## Author
+
+[Author Name]
 
 ## License
 

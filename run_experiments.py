@@ -37,16 +37,16 @@ class ExperimentRunner:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
-        # Default configuration
+        # Default configuration - chỉ datasets nhỏ và ổn định
         self.default_config = {
             'datasets': ['Cora', 'CiteSeer', 'PubMed', 'Amazon-Computers', 'DBLP'],
             'meta_learning_methods': ['Meta-GCN', 'Meta-GAT'],
-            'baseline_methods': ['Louvain', 'Leiden', 'Spectral', 'DeepWalk', 'VGAE'],
+            'baseline_methods': ['Louvain', 'Leiden', 'Spectral', 'DeepWalk'],  # Removed VGAE for stability
             'metrics': ['NMI', 'ARI', 'Modularity', 'Conductance'],
-            'n_trials': 5,
-            'meta_learning_epochs': 1000,
-            'adaptation_steps': 10,
-            'patience': 100,
+            'n_trials': 3,  # Reduced for faster testing
+            'meta_learning_epochs': 500,  # Reduced for faster training
+            'adaptation_steps': 5,  # Reduced for stability
+            'patience': 50,  # Reduced for faster convergence detection
             'generate_report': True,
             'run_notebooks': True
         }

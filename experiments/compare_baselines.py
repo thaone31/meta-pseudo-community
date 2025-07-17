@@ -1,5 +1,5 @@
 """
-Comprehensive comparison với baseline methods
+Comprehensive comparison with baseline methods
 """
 
 import os

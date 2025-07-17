@@ -47,7 +47,7 @@ class PseudoLabelGenerator:
                 num_clusters: Optional[int] = None) -> Dict:
         """Generate pseudo-labels cho graph"""
         
-        # Estimate number of clusters nếu không được cung cấp
+        # Estimate number of clusters if not provided
         if num_clusters is None:
             num_clusters = self._estimate_num_clusters(data, embeddings)
         
@@ -112,7 +112,7 @@ class PseudoLabelGenerator:
     
     def _spectral_clustering(self, data: Data, embeddings: Optional[torch.Tensor],
                            num_clusters: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Spectral clustering trên adjacency matrix"""
+        """Spectral clustering on adjacency matrix"""
         
         # Handle edge case: if we have fewer nodes than clusters
         if data.num_nodes < num_clusters:
@@ -390,7 +390,7 @@ class PseudoLabelGenerator:
 
 
 class PseudoLabelRefiner(nn.Module):
-    """Neural module để refine pseudo-labels"""
+    """Neural module to refine pseudo-labels"""
     
     def __init__(self, embedding_dim: int, hidden_dim: int = 128):
         super().__init__()
@@ -424,7 +424,7 @@ class PseudoLabelRefiner(nn.Module):
 
 
 class AdaptivePseudoLabelGenerator:
-    """Adaptive pseudo-label generator có thể switch giữa các methods"""
+    """Adaptive pseudo-label generator that can switch between different methods"""
     
     def __init__(self, methods: List[str] = ['spectral', 'louvain', 'kmeans']):
         self.generators = {method: PseudoLabelGenerator(method) for method in methods}
@@ -432,7 +432,7 @@ class AdaptivePseudoLabelGenerator:
     
     def generate_ensemble(self, data: Data, embeddings: Optional[torch.Tensor] = None,
                          num_clusters: Optional[int] = None) -> Dict:
-        """Generate ensemble pseudo-labels từ multiple methods"""
+        """Generate ensemble pseudo-labels from multiple methods"""
         
         all_results = {}
         all_labels = []

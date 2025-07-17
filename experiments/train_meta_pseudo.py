@@ -69,7 +69,7 @@ class MetaTrainer:
         return device
     
     def _setup_logging(self):
-        """Setup logging và save directories"""
+        """Setup logging and save directories"""
         self.save_dir = self.config['logging']['save_dir']
         os.makedirs(self.save_dir, exist_ok=True)
         
@@ -99,7 +99,7 @@ class MetaTrainer:
         """Create base model"""
         model_config = self.config['model']['base_model']
         
-        # Estimate input dimension từ data - sử dụng dimension phổ biến nhất
+        # Estimate input dimension from data - use most common dimension
         available_datasets = self.data_loader.get_available_datasets()
         input_dims = []
         

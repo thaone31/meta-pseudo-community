@@ -1,5 +1,5 @@
 """
-Dataset downloader cho các bộ dữ liệu community detection
+Dataset downloader for community detection datasets
 """
 
 import os
@@ -16,14 +16,14 @@ import pickle
 
 
 class DatasetDownloader:
-    """Download và chuẩn bị các bộ dữ liệu cho community detection"""
+    """Download and prepare datasets for community detection"""
     
     def __init__(self, data_dir: str = "./data/raw"):
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
         
     def download_all(self):
-        """Download tất cả datasets"""
+        """Download all datasets"""
         print("Downloading datasets...")
         
         # Download PyG datasets
@@ -38,26 +38,24 @@ class DatasetDownloader:
         print("All datasets downloaded successfully!")
     
     def download_pyg_datasets(self):
-        """Download datasets từ PyTorch Geometric"""
-        datasets = ['Cora', 'CiteSeer', 'PubMed']
+        """Download datasets from PyTorch Geometric - only small and stable datasets"""
+        # Core citation networks - small and stable
+        citation_datasets = ['Cora', 'CiteSeer', 'PubMed']
         
-        for dataset_name in datasets:
+        for dataset_name in citation_datasets:
             print(f"Downloading {dataset_name}...")
             dataset = Planetoid(root=f"{self.data_dir}/pyg", name=dataset_name)
-            
-        # Reddit dataset (skip for now - too large for initial testing)
-        # print("Downloading Reddit...")
-        # reddit = Reddit(root=f"{self.data_dir}/pyg/Reddit")
         
-        # Amazon dataset
-        print("Downloading Amazon...")
+        # Amazon dataset - medium size
+        print("Downloading Amazon-Computers...")
         amazon = Amazon(root=f"{self.data_dir}/pyg/Amazon", name="Computers")
         
-        # DBLP dataset  
+        # DBLP dataset - medium size
         print("Downloading DBLP...")
         dblp = DBLP(root=f"{self.data_dir}/pyg/DBLP")
         
-        print("✓ Core PyTorch Geometric datasets downloaded successfully")
+        print("✓ Core datasets downloaded successfully (Cora, CiteSeer, PubMed, Amazon-Computers, DBLP)")
+        print("Note: Skipped large datasets (Reddit) for stability and performance")
     
     def download_real_world_networks(self):
         """Download real-world network datasets"""
@@ -83,7 +81,7 @@ class DatasetDownloader:
             
             print("Generating LFR benchmark networks...")
             
-            # Các tham số khác nhau cho LFR networks - improved parameters
+            # Different parameters for LFR networks - improved parameters
             lfr_params = [
                 {'n': 1000, 'tau1': 3, 'tau2': 1.5, 'mu': 0.1, 'average_degree': 20, 'min_community': 50, 'max_community': 100, 'seed': 42},
                 {'n': 1000, 'tau1': 2, 'tau2': 1.1, 'mu': 0.3, 'average_degree': 15, 'min_community': 30, 'max_community': 80, 'seed': 42},
@@ -96,7 +94,7 @@ class DatasetDownloader:
                     print(f"Generating LFR network {i+1}/4...")
                     G = LFR_benchmark_graph(**params)
                     
-                    # Lưu network và ground truth communities
+                    # Save network and ground truth communities
                     output_dir = f"{self.data_dir}/lfr/lfr_{i+1}"
                     os.makedirs(output_dir, exist_ok=True)
                     
